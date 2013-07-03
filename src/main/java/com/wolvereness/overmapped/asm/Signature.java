@@ -44,6 +44,19 @@ public class Signature {
 			return this;
 		}
 
+		public <T> T updateAndGet(
+		                          final String clazz,
+		                          final String name,
+		                          final String signature,
+		                          final Map<Signature, T> map,
+		                          final T def
+		                          ) {
+			final T value = map.get(update(clazz, name, signature));
+			if (value == null)
+				return def;
+			return value;
+		}
+
 		public MutableSignature update(
 		                               final String clazz,
 		                               final String name,

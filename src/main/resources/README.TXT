@@ -11,10 +11,12 @@ while the parameter name is used in the pom's plugin-configuration.
   maps - mapping.maps
     This is yaml file containing mapping changes. The top-level structure
     should be a list of relational arrays, or a single relational array. Each
-    relational array can have two processed keys, `members' and `classes'.
-    Relational arrays are processed in order of appearance. In each relational
-    array, `classes' are processed before `members'. Each consecutive entry is
-    processed as if every entry is being applied on top of any previous entry.
+    relational array can have three processed keys, `members', `classes', and
+    `flags'. Relational arrays are processed in order of appearance. In each
+    relational array, sections are processed in the order of `classes', then
+    `members', then `flags'. Each consecutive entry (as the set of previously
+    described keys) is processed as if every entry is being applied on top of
+    any previous entry.
 
     A member entry follows a format of fully qualified name (delimited by
     slashes or `/' ), the previous name, and a descriptor, appended with
@@ -54,6 +56,14 @@ while the parameter name is used in the pom's plugin-configuration.
 
     classes:
       "java/lang/Runnable": "java/lang/GoTime"
+
+    Flags are changed by using the fully qualified description (see above) as
+    the relational key, with an integer as the relational value. These must be
+    exact matches to the members. An example flagging Thread.run() as
+    synthetic (this doesn't affect sub-classes!):
+
+    flags:
+      "java/lang/Thread run ()V": 1001
 
     Required
 

@@ -30,10 +30,10 @@ public enum Missing {
 			public void act(
 			                final Log log,
 			                final String message,
-			                final String string1,
-			                final String string2,
-			                final String string3,
-			                final String string4,
+			                final Object string1,
+			                final Object string2,
+			                final Object string3,
+			                final Object string4,
 			                final Object verbose
 			                ) {
 				log.warn(makeMessage(message, string1, string2, string3, string4));
@@ -45,10 +45,10 @@ public enum Missing {
 			public void act(
 			                final Log log,
 			                final String message,
-			                final String string1,
-			                final String string2,
-			                final String string3,
-			                final String string4,
+			                final Object string1,
+			                final Object string2,
+			                final Object string3,
+			                final Object string4,
 			                final Object verbose
 			                ) throws
 			                MojoFailureException
@@ -62,10 +62,10 @@ public enum Missing {
 			public void act(
 			                final Log log,
 			                final String message,
-			                final String string1,
-			                final String string2,
-			                final String string3,
-			                final String string4,
+			                final Object string1,
+			                final Object string2,
+			                final Object string3,
+			                final Object string4,
 			                final Object verbose
 			                ) {
 				// Ignore
@@ -77,15 +77,14 @@ public enum Missing {
 			public void act(
 			                final Log log,
 			                final String message,
-			                final String string1,
-			                final String string2,
-			                final String string3,
-			                final String string4,
+			                final Object string1,
+			                final Object string2,
+			                final Object string3,
+			                final Object string4,
 			                final Object verbose
-
-			         ) throws
-			         MojoFailureException
-			         {
+			                ) throws
+			                MojoFailureException
+			                {
 				WARN.act(log, message, string1, string2, string3, string4, verbose);
 				log.info("Verbose:\n" + verbose);
 			}
@@ -95,10 +94,10 @@ public enum Missing {
 	abstract void act(
 	                  final Log log,
 	                  final String message,
-	                  final String string1,
-	                  final String string2,
-	                  final String string3,
-	                  final String string4,
+	                  final Object string1,
+	                  final Object string2,
+	                  final Object string3,
+	                  final Object string4,
 	                  final Object verbose
 	                  ) throws
 	                  MojoFailureException
@@ -106,10 +105,11 @@ public enum Missing {
 
 	String makeMessage(
 	                   final String message,
-	                   final String string1,
-	                   final String string2,
-	                   final String string3,
-	                   final String string4) {
+	                   final Object string1,
+	                   final Object string2,
+	                   final Object string3,
+	                   final Object string4
+	                   ) {
 		return String.format(
 			message,
 			string1,
@@ -141,5 +141,15 @@ public enum Missing {
 	                      MojoFailureException
 	                      {
 		act(log, "Could not find member `%2$s' - `%4$s' in `%1$s' (mapping to `%3$s')", context, name, newName, description, signatures);
+	}
+
+	public void actFlag(
+	                    final Log log,
+	                    final Map.Entry<?, ?> entry,
+	                    final Map<Signature, Signature> signatures
+	                    ) throws
+	                    MojoFailureException
+	                    {
+		act(log, "Could not find member `%s', setting flag %d", entry.getKey(), entry.getValue(), null, null, signatures);
 	}
 }

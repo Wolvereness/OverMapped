@@ -16,7 +16,7 @@
  */
 package com.wolvereness.overmapped.asm;
 
-import static org.objectweb.asm.Opcodes.*;
+import static org.objectweb.asm.Opcodes.ASM4;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -158,12 +158,13 @@ public final class ByteClass {
 	public Callable<Pair<ZipEntry, byte[]>> callable(
 	                                                 final Map<Signature, Signature> signatures,
 	                                                 final Map<String, String> classMaps,
-	                                                 final Map<String, ByteClass> classes
+	                                                 final Map<String, ByteClass> classes,
+	                                                 final Map<Signature, Integer> flags
 	                                                 ) {
 		return new Callable<Pair<ZipEntry, byte[]>>()
 			{
 				public Pair<ZipEntry, byte[]> call() throws Exception {
-					return ByteClass.this.call(signatures, classMaps, classes);
+					return ByteClass.this.call(signatures, classMaps, classes, flags);
 				}
 			};
 	}
@@ -171,37 +172,86 @@ public final class ByteClass {
 	public Pair<ZipEntry, byte[]> call(
 	                                   final Map<Signature, Signature> signatures,
 	                                   final Map<String, String> classMaps,
-	                                   final Map<String, ByteClass> classes
+	                                   final Map<String, ByteClass> classes,
+	                                   final Map<Signature, Integer> flags
 	                                   ) throws
 	                                   Exception
 	                                   {
+		final MutableSignature signature = new Signature.MutableSignature("", "", "");
 		final ClassWriter writer = new ClassWriter(0);
-		reader.accept(new RemappingClassAdapter(
-			writer,
-			new Remapper()
-				{
-					final MutableSignature signature = new Signature.MutableSignature("", "", "");
-
-					@Override
-					public String mapMethodName(final String owner, final String name, final String desc) {
-						return signature.update(owner, name, desc, signatures).getElementName();
-					}
-
-					@Override
-					public String mapFieldName(final String owner, final String name, final String desc) {
-						return signature.update(owner, name, desc, signatures).getElementName();
-					}
-
-					@Override
-					public String map(final String typeName) {
-						final String name = classMaps.get(typeName);
-						if (name != null) {
-							return name;
+		reader.accept(
+			new RemappingClassAdapter(
+				writer,
+				new Remapper()
+					{
+						@Override
+						public String mapMethodName(final String owner, final String name, final String desc) {
+							return signature.update(owner, name, desc, signatures).getElementName();
 						}
-						return typeName;
+
+						@Override
+						public String mapFieldName(final String owner, final String name, final String desc) {
+							return signature.update(owner, name, desc, signatures).getElementName();
+						}
+
+						@Override
+						public String map(final String typeName) {
+							final String name = classMaps.get(typeName);
+							if (name != null)
+								return name;
+							return typeName;
+						}
 					}
-				}
-			), ClassReader.EXPAND_FRAMES);
+				)
+				{
+					@Override
+					public FieldVisitor visitField(
+					                               final int access,
+					                               final String name,
+					                               final String desc,
+					                               final String generics,
+					                               final Object value
+					                               ) {
+						return super.visitField(
+							signature.updateAndGet(
+								ByteClass.this.getToken(),
+								name,
+								desc,
+								flags,
+								access
+								),
+							name,
+							desc,
+							generics,
+							value
+							);
+					}
+
+					@Override
+					public MethodVisitor visitMethod(
+					                                 final int access,
+					                                 final String name,
+					                                 final String desc,
+					                                 final String generics,
+					                                 final String[] exceptions
+					                                 ) {
+						return super.visitMethod(
+							signature.updateAndGet(
+								ByteClass.this.getToken(),
+								name,
+								desc,
+								flags,
+								access
+								),
+							name,
+							desc,
+							generics,
+							exceptions
+							);
+					}
+				},
+			ClassReader.EXPAND_FRAMES
+			);
 
 		return new ImmutablePair<ZipEntry, byte[]>(
 			new ZipEntry(classMaps.get(token) + FILE_POSTFIX),

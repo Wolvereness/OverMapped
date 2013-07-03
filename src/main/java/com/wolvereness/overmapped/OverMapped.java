@@ -16,9 +16,10 @@
  */
 package com.wolvereness.overmapped;
 
-import static com.google.common.collect.Lists.*;
-import static com.google.common.collect.Maps.*;
-import static com.google.common.collect.Sets.*;
+import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Maps.newHashMap;
+import static com.google.common.collect.Maps.newLinkedHashMap;
+import static com.google.common.collect.Sets.newHashSet;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -142,12 +143,10 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				{
 					public Iterable<?> call() throws Exception {
 						final Object yaml = new Yaml().load(Files.toString(maps, Charset.forName("UTF8")));
-						if (yaml instanceof Iterable) {
+						if (yaml instanceof Iterable)
 							return (Iterable<?>) yaml;
-						}
-						if (yaml instanceof Map) {
+						if (yaml instanceof Map)
 							return ImmutableList.of(yaml);
-						}
 						throw new ClassCastException(String.format(
 							"%s (%s) implements neither %s nor %s",
 							yaml,
@@ -181,14 +180,15 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		final BiMap<Signature, Signature> signatureMaps = HashBiMap.create();
 		final BiMap<Signature, Signature> inverseSignatureMaps = signatureMaps.inverse();
 
+		final Map<Signature, Integer> flags = newHashMap();
+
 		final Remapper inverseMapper = new Remapper()
 			{
 				@Override
 				public String map(final String typeName) {
 					final String name = inverseNameMaps.get(typeName);
-					if (name != null) {
+					if (name != null)
 						return name;
-					}
 					return typeName;
 				}
 			};
@@ -207,14 +207,13 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 					for (final Map.Entry<?, ?> classMap : ((Map<?,?>) classMaps).entrySet()) {
 						final String originalName = ((String) classMap.getKey()).toString();
 						final String newName = ((String) classMap.getValue()).toString();
-						if (nameMaps.containsValue(newName)) {
+						if (nameMaps.containsValue(newName))
 							throw new MojoFailureException(String.format(
 								"Cannot map `%s' to a duplicate entry `%s' mapped from `%s'",
 								originalName,
 								newName,
 								inverseNameMaps.get(newName)
 								));
-						}
 						final String trueOriginal = inverseNameMaps.get(originalName);
 						if (trueOriginal == null) {
 							missingAction.actClass(getLog(), originalName, newName, inverseNameMaps);
@@ -277,21 +276,20 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 							final int finalSpace = qualifiedName.lastIndexOf(' ');
 
 							if (firstSpace == finalSpace) {
-								if (firstSpace == -1) {
+								if (firstSpace == -1)
 									throw new MojoFailureException(String.format(
 										"Malformed mapping %s",
 										qualifiedName
 										));
-								}
 								classes = ImmutableList.of(qualifiedName.substring(0, firstSpace));
 								name = qualifiedName.substring(finalSpace + 1);
 								description = null;
-							} else if (qualifiedName.indexOf(' ', firstSpace + 1) != finalSpace) {
+							} else if (qualifiedName.indexOf(' ', firstSpace + 1) != finalSpace)
 								throw new MojoFailureException(String.format(
 									"Malformed mapping %s",
 									qualifiedName
 									));
-							} else {
+							else {
 								classes = ImmutableList.of(qualifiedName.substring(0, firstSpace));
 								name = qualifiedName.substring(firstSpace + 1, finalSpace);
 								description = qualifiedName.substring(finalSpace + 1);
@@ -345,6 +343,62 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				throwable.initCause(ex);
 				throw throwable;
 			}
+
+			try {
+				final Object flagMaps = map.get("flags");
+				if (flagMaps instanceof Map) {
+					for (final Map.Entry<?, ?> flagMap : ((Map<?,?>) flagMaps).entrySet()) {
+						final String qualifiedName = asType(
+							flagMap.getKey(),
+							"`%4$s' points from a %2$s `%1$s', expected a %5$s, in `%3$s'",
+							false,
+							flagMaps,
+							flagMap,
+							String.class
+							);
+						final Integer flag = asType(
+							flagMap.getValue(),
+							"Expected a value `%4$s'->%5$s in %3%s, got %2$s `%1$s'",
+							false,
+							flagMaps,
+							qualifiedName,
+							Integer.class
+							);
+
+
+						final int firstSpace = qualifiedName.indexOf(' ');
+						final int finalSpace = qualifiedName.lastIndexOf(' ');
+
+						if (firstSpace == finalSpace || qualifiedName.indexOf(' ', firstSpace + 1) != finalSpace) throw new MojoFailureException(String.format(
+							"Malformed mapping %s",
+							qualifiedName
+							));
+
+						final String clazz = qualifiedName.substring(0, firstSpace);
+						final String name = qualifiedName.substring(firstSpace + 1, finalSpace);
+						final String description = qualifiedName.substring(finalSpace + 1);
+
+						final String unmappedClass = inverseNameMaps.get(clazz);
+						if (unmappedClass == null) {
+							missingAction.actFlag(getLog(), flagMap, signatureMaps);
+							continue;
+						}
+						final String unmappedDescription = inverseMapper.mapDesc(description);
+
+						final Signature unmappedSignature = inverseSignatureMaps.get(signature.update(unmappedClass, name, unmappedDescription));
+						if (unmappedSignature == null) {
+							missingAction.actFlag(getLog(), flagMap, signatureMaps);
+							continue;
+						}
+
+						flags.put(unmappedSignature, flag);
+					}
+				}
+			} catch (final Exception ex) {
+				final Throwable throwable = new MojoFailureException("Failed to parse class mappings in " + mapping);
+				throwable.initCause(ex);
+				throw throwable;
+			}
 		}
 
 		try {
@@ -357,12 +411,12 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				));
 		}
 
-		writeToFile(executor, byteClasses, fileEntries, nameMaps, signatureMaps);
+		writeToFile(executor, byteClasses, fileEntries, nameMaps, signatureMaps, flags);
 
 		executor.shutdown();
 
 		final Pair<Thread, Throwable> uncaught = this.uncaught;
-		if (uncaught != null) {
+		if (uncaught != null)
 			throw new MojoExecutionException(
 				String.format(
 					"Uncaught exception in %s",
@@ -370,7 +424,6 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 					),
 				uncaught.getRight()
 				);
-		}
 	}
 
 	private void writeToFile(
@@ -378,7 +431,8 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                         final Map<String, ByteClass> byteClasses,
 	                         final List<Pair<ZipEntry, byte[]>> fileEntries,
 	                         final BiMap<String, String> nameMaps,
-	                         final BiMap<Signature, Signature> signatureMaps
+	                         final BiMap<Signature, Signature> signatureMaps,
+	                         final Map<Signature, Integer> flags
 	                         ) throws
 	                         IOException,
 	                         FileNotFoundException,
@@ -387,7 +441,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                         {
 		final Collection<Future<Pair<ZipEntry, byte[]>>> classWrites = newArrayList();
 		for (final ByteClass clazz : byteClasses.values()) {
-			classWrites.add(executor.submit(clazz.callable(signatureMaps, nameMaps, byteClasses)));
+			classWrites.add(executor.submit(clazz.callable(signatureMaps, nameMaps, byteClasses, flags)));
 		}
 
 		FileOutputStream fileOut = null;
@@ -433,9 +487,8 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                             ) throws
 	                             MojoFailureException
 	                             {
-		if (!cache.add(original)) {
+		if (!cache.add(original))
 			return false;
-		}
 
 		signature.update(original, name, unmappedDescription);
 
@@ -501,12 +554,10 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                     ClassCastException,
 	                     NullPointerException
 	                     {
-		if (clazz.isInstance(value)) {
+		if (clazz.isInstance(value))
 			return clazz.cast(value);
-		}
-		if (acceptNull && value == null) {
+		if (acceptNull && value == null)
 			return null;
-		}
 		final String exceptionMessage = String.format(
 			message,
 			value,
@@ -515,31 +566,27 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 			identifier,
 			clazz
 			);
-		if (value == null) {
+		if (value == null)
 			throw new NullPointerException(exceptionMessage);
-		}
 		throw new ClassCastException(exceptionMessage);
 	}
 
 	private void validateInput() throws MojoExecutionException, MojoFailureException {
-		if (cores <=0) {
+		if (cores <=0)
 			throw new MojoExecutionException(String.format(
 				"Cannot process with no cores: `%d'",
 				cores
 				));
-		}
-		if (!maps.exists() || maps.isDirectory()) {
+		if (!maps.exists() || maps.isDirectory())
 			throw new MojoFailureException(String.format(
 				"Cannot process non-existant maps file `%s'",
 				maps
 				));
-		}
-		if (!input.exists() || input.isDirectory()) {
+		if (!input.exists() || input.isDirectory())
 			throw new MojoFailureException(String.format(
 				"Cannot process non-existent input file `%s'",
 				input
 				));
-		}
 
 		verifyOut(output);
 		verifyOut(original);
@@ -674,13 +721,12 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		for (final Future<ByteClass> clazzFuture : classBuffer) {
 			ByteClass clazz = clazzFuture.get();
 			clazz = byteClasses.put(clazz.getToken(), clazz);
-			if (clazz != null) {
+			if (clazz != null)
 				throw new MojoFailureException(String.format(
 					"Duplicate class definition %s - %s",
 					clazz,
 					clazzFuture.get()
 					));
-			}
 		}
 
 		zipInput.close();
@@ -725,19 +771,17 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                       MojoFailureException
 	                       {
 		if (out != null){
-			if (out.isDirectory()) {
+			if (out.isDirectory())
 				throw new MojoFailureException(String.format(
 					"Cannot write to directory `%s'",
 					out
 					));
-			}
 			final File parent = out.getParentFile();
-			if (!parent.isDirectory() && !parent.mkdirs()) {
+			if (!parent.isDirectory() && !parent.mkdirs())
 				throw new MojoFailureException(String.format(
 					"Cannot make directory for `%s'",
 					out
 					));
-			}
 		}
 	}
 
