@@ -163,6 +163,7 @@ public final class ByteClass {
 	                                                 ) {
 		return new Callable<Pair<ZipEntry, byte[]>>()
 			{
+				@Override
 				public Pair<ZipEntry, byte[]> call() throws Exception {
 					return ByteClass.this.call(signatures, classMaps, classes, flags);
 				}

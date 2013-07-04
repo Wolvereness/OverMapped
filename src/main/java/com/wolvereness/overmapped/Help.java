@@ -29,6 +29,7 @@ import com.google.common.io.ByteStreams;
 @Mojo(name="help")
 public class Help extends AbstractMojo {
 
+	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		final InputStream help = OverMapped.class.getResourceAsStream("/README.TXT");
 		if (help != null) {

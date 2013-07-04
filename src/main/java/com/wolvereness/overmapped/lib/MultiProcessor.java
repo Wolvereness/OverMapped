@@ -48,9 +48,8 @@ public abstract class MultiProcessor {
 	}
 
 	final void checkShutdown() {
-		if (MultiProcessor.this.shutdown) {
+		if (MultiProcessor.this.shutdown)
 			throw new IllegalStateException("Cannot submit tasks to shutdown processor");
-		}
 	}
 
 	public abstract <T> Future<T> submit(final Callable<T> task);
@@ -65,22 +64,27 @@ final class SingletonProcessor extends MultiProcessor {
 			final T object = task.call();
 			return new Future<T>()
 				{
+					@Override
 					public boolean cancel(final boolean mayInterruptIfRunning) {
 						return false;
 					}
 
+					@Override
 					public boolean isCancelled() {
 						return false;
 					}
 
+					@Override
 					public boolean isDone() {
 						return true;
 					}
 
+					@Override
 					public T get() throws InterruptedException, ExecutionException {
 						return object;
 					}
 
+					@Override
 					public T get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 						return object;
 					}
@@ -89,22 +93,27 @@ final class SingletonProcessor extends MultiProcessor {
 			final Exception ex = exception;
 			return new Future<T>()
 				{
+					@Override
 					public boolean cancel(final boolean mayInterruptIfRunning) {
 						return false;
 					}
 
+					@Override
 					public boolean isCancelled() {
 						return false;
 					}
 
+					@Override
 					public boolean isDone() {
 						return true;
 					}
 
+					@Override
 					public T get() throws InterruptedException, ExecutionException {
 						throw new ExecutionException(ex);
 					}
 
+					@Override
 					public T get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 						throw new ExecutionException(ex);
 					}
@@ -132,19 +141,23 @@ final class ProperProcessor extends MultiProcessor {
 			this.callable = callable;
 		}
 
+		@Override
 		public boolean cancel(final boolean mayInterruptIfRunning) {
 			return STATE_UPDATER.compareAndSet(this, READY, CANCELLED);
 		}
 
+		@Override
 		public boolean isCancelled() {
 			return state == CANCELLED;
 		}
 
+		@Override
 		public boolean isDone() {
 			final int state = this.state;
 			return state == DONE || state == CANCELLED;
 		}
 
+		@Override
 		public T get() throws InterruptedException, ExecutionException, CancellationException {
 			while (true) {
 				switch (this.state) {
@@ -219,6 +232,7 @@ final class ProperProcessor extends MultiProcessor {
 			this.notifyAll();
 		}
 
+		@Override
 		public T get(final long timeout, final TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 			throw new UnsupportedOperationException("Cannot time waiting for a MultiProcessor");
 		}
@@ -233,6 +247,7 @@ final class ProperProcessor extends MultiProcessor {
 			final Thread thread = factory.newThread(
 				new Runnable()
 					{
+						@Override
 						public void run() {
 							final BlockingQueue<Task<?>> queue = ProperProcessor.this.queue;
 							try {
@@ -240,9 +255,8 @@ final class ProperProcessor extends MultiProcessor {
 									queue.take().handle();
 								}
 							} catch (final InterruptedException ex) {
-								if (!shutdown) {
+								if (!shutdown)
 									throw new IllegalStateException("Interrupted innappropriately", ex);
-								}
 							}
 						}
 					}
@@ -255,6 +269,7 @@ final class ProperProcessor extends MultiProcessor {
 		if (it.hasNext()) {
 			submit(new Callable<Object>()
 				{
+					@Override
 					public Object call() throws Exception {
 						while (it.hasNext()) {
 							it.next().start();

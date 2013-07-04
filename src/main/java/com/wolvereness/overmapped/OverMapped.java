@@ -93,6 +93,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 
 	private volatile Pair<Thread, Throwable> uncaught;
 
+	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
 		final InputStream license = OverMapped.class.getResourceAsStream("/COPYING.HEADER.TXT");
 		if (license != null) {
@@ -127,6 +128,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		final Future<?> fileCopy = executor.submit(
 			new Callable<Object>()
 				{
+					@Override
 					public Object call() throws Exception {
 						if (original != null) {
 							if (original.exists()) {
@@ -141,6 +143,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		final Future<Iterable<?>> mappings = executor.submit(
 			new Callable<Iterable<?>>()
 				{
+					@Override
 					public Iterable<?> call() throws Exception {
 						final Object yaml = new Yaml().load(Files.toString(maps, Charset.forName("UTF8")));
 						if (yaml instanceof Iterable)
@@ -695,6 +698,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				classBuffer.add(executor.submit(
 					new Callable<ByteClass>()
 						{
+							@Override
 							public ByteClass call() throws Exception {
 								return new ByteClass(zipEntry.getName(), zipInput.getInputStream(zipEntry));
 							}
@@ -704,6 +708,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				fileBuffer.add(executor.submit(
 					new Callable<Pair<ZipEntry, byte[]>>()
 						{
+							@Override
 							public Pair<ZipEntry, byte[]> call() throws Exception {
 								return new ImmutablePair<ZipEntry, byte[]>(
 									new ZipEntry(zipEntry),
@@ -785,6 +790,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		}
 	}
 
+	@Override
 	public void uncaughtException(final Thread t, final Throwable e) {
 		uncaught = new ImmutablePair<Thread, Throwable>(t, e);
 	}

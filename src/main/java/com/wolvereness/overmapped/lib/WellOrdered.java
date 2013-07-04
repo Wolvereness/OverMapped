@@ -128,6 +128,8 @@ public final class WellOrdered {
 	/**
 	 * This class provides a base implementation for the three methods located
 	 * in {@link Informer}.
+	 *
+	 * @param <T> Type being ordered referenced
 	 */
 	public static abstract class AbstractInformer<T> implements Informer<T> {
 
@@ -136,6 +138,7 @@ public final class WellOrdered {
 		 * <p>
 		 * {@inheritDoc}
 		 */
+		@Override
 		public void addPrecedingTo(final T token, final Collection<? super T> of) {}
 
 		/**
@@ -143,6 +146,7 @@ public final class WellOrdered {
 		 * <p>
 		 * {@inheritDoc}
 		 */
+		@Override
 		public void addPrecedingPreferencesTo(final T token, final Collection<? super T> of) {}
 
 		/**
@@ -150,6 +154,7 @@ public final class WellOrdered {
 		 * <p>
 		 * {@inheritDoc}
 		 */
+		@Override
 		public void addProceedingPreferencesTo(final T token, final Collection<? super T> of) {}
 	}
 
