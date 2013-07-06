@@ -17,6 +17,7 @@
 package com.wolvereness.overmapped;
 
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,6 +40,7 @@ class MembersSubRoutine extends SubRoutine {
 	@Override
 	public void invoke(
 	                   final OverMapped instance,
+	                   final Multimap<String, String> depends,
 	                   final Multimap<String, String> rdepends,
 	                   final BiMap<String, String> nameMaps,
 	                   final BiMap<String, String> inverseNameMaps,
@@ -57,6 +59,8 @@ class MembersSubRoutine extends SubRoutine {
 		final Object memberMaps = map.get(tag);
 		if (!(memberMaps instanceof Map))
 			return;
+
+		final Set<String> parents = instance.isFindParents() ? new HashSet<String>() : null;
 
 		for (final Map.Entry<?, ?> memberMap : ((Map<?,?>) memberMaps).entrySet()) {
 			final Object key = memberMap.getKey();
@@ -156,13 +160,35 @@ class MembersSubRoutine extends SubRoutine {
 				}
 
 				if (signature.isMethod()) {
+					if (parents != null) {
+						parents.addAll(depends.get(original));
+					}
 					for (final String inherited : rdepends.get(original)) {
-						updateMember(instance, searchCache, signatureMaps, inverseSignatureMaps, signature, name, newName, description, unmappedDescription, nameMaps.get(inherited), inherited);
+						if (
+								updateMember(instance, searchCache, signatureMaps, inverseSignatureMaps, signature, name, newName, description, unmappedDescription, nameMaps.get(inherited), inherited)
+								&& parents != null
+								) {
+							parents.addAll(depends.get(inherited));
+						}
 					}
 				}
 			}
 
+			if (parents != null) {
+				parents.removeAll(searchCache);
+				for (final String parent : parents) {
+					if (inverseSignatureMaps.containsKey(signature.update(parent, name, unmappedDescription))) {
+						instance.getLog().info(String.format(
+							"Expected parent method mapping for `%s'->`%s' from mappings in %s",
+							signature,
+							signature.forElementName(newName),
+							classes
+							));
+					}
+				}
+			}
 			searchCache.clear();
+			parents.clear();
 		}
 	}
 

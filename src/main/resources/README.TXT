@@ -102,3 +102,11 @@ while the parameter name is used in the pom's plugin-configuration.
       users to debug their maps.
 
     Default - WARN
+
+  findParents - mapping.findParents
+    This value indicates should attempt to detect when a mapped methods loses
+    inheritance to a parent's (implemented interface or extended class)
+    method. If a parent class has a method with the same signature, OverMapped
+    will print a message indicating the method that is no longer overridden.
+
+    Default - false

@@ -42,6 +42,7 @@ abstract class SubRoutine {
 
 	abstract void invoke(
 	                     final OverMapped instance,
+	                     final Multimap<String, String> depends,
 	                     final Multimap<String, String> rdepends,
 	                     final BiMap<String, String> nameMaps,
 	                     final BiMap<String, String> inverseNameMaps,

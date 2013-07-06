@@ -36,6 +36,7 @@ class ClassesSubRoutine extends SubRoutine {
 	@Override
 	public void invoke(
 	                   final OverMapped instance,
+	                   final Multimap<String, String> depends,
 	                   final Multimap<String, String> rdepends,
 	                   final BiMap<String, String> nameMaps,
 	                   final BiMap<String, String> inverseNameMaps,

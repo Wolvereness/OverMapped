@@ -16,10 +16,9 @@
  */
 package com.wolvereness.overmapped;
 
-import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Maps.newHashMap;
-import static com.google.common.collect.Maps.newLinkedHashMap;
-import static com.google.common.collect.Sets.newHashSet;
+import static com.google.common.collect.Lists.*;
+import static com.google.common.collect.Maps.*;
+import static com.google.common.collect.Sets.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -89,6 +88,9 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	@Parameter(defaultValue="WARN", required=true, property="mapping.missing")
 	private String missing;
 	Missing missingAction = Missing.WARN;
+
+	@Parameter(defaultValue="false", property="mapping.findParents")
+	private boolean findParents;
 
 	private volatile Pair<Thread, Throwable> uncaught;
 
@@ -207,6 +209,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				try {
 					subRoutine.invoke(
 						this,
+						depends,
 						rdepends,
 						nameMaps,
 						inverseNameMaps,
@@ -519,5 +522,9 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	@Override
 	public void uncaughtException(final Thread t, final Throwable e) {
 		uncaught = new ImmutablePair<Thread, Throwable>(t, e);
+	}
+
+	boolean isFindParents() {
+		return findParents;
 	}
 }
