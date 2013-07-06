@@ -55,7 +55,7 @@ class MembersSubRoutine extends SubRoutine {
 	                   MojoFailureException
 	                   {
 		final Object memberMaps = map.get(tag);
-		if (memberMaps instanceof Map)
+		if (!(memberMaps instanceof Map))
 			return;
 
 		for (final Map.Entry<?, ?> memberMap : ((Map<?,?>) memberMaps).entrySet()) {
