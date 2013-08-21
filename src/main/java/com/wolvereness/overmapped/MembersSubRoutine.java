@@ -146,7 +146,10 @@ class MembersSubRoutine extends SubRoutine {
 				continue;
 			}
 
-			final String unmappedDescription = inverseMapper.mapDesc(description);
+			final String unmappedDescription =
+				signature.update("", "", description).isMethod()
+				? inverseMapper.mapMethodDesc(description)
+				: inverseMapper.mapDesc(description);
 
 			for (final String clazz : classes) {
 				final String original = inverseNameMaps.get(clazz);
