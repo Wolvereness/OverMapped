@@ -209,6 +209,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 				try {
 					subRoutine.invoke(
 						this,
+						byteClasses,
 						depends,
 						rdepends,
 						nameMaps,

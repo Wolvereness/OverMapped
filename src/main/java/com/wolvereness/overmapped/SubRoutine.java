@@ -25,6 +25,7 @@ import org.objectweb.asm.commons.Remapper;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Multimap;
+import com.wolvereness.overmapped.asm.ByteClass;
 import com.wolvereness.overmapped.asm.Signature;
 
 abstract class SubRoutine {
@@ -42,6 +43,7 @@ abstract class SubRoutine {
 
 	abstract void invoke(
 	                     final OverMapped instance,
+	                     final Map<String, ByteClass> classes,
 	                     final Multimap<String, String> depends,
 	                     final Multimap<String, String> rdepends,
 	                     final BiMap<String, String> nameMaps,

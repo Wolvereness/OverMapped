@@ -135,6 +135,11 @@ public class Signature {
 		return new Signature(clazz, name, descriptor);
 	}
 
+	/**
+	 *
+	 * @param name element name to use for the copy
+	 * @return an immutable copy of this Signature using the specified element name
+	 */
 	public Signature forElementName(final String name) {
 		return new Signature(clazz, name, descriptor);
 	}

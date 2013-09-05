@@ -152,4 +152,25 @@ public enum Missing {
 	                    {
 		act(log, "Could not find member `%s', setting flag %d", entry.getKey(), entry.getValue(), null, null, signatures);
 	}
+
+	public void actMemberClass(
+	                           final Log log,
+	                           final String originalName,
+	                           final Object mappings,
+	                           final Map<String, String> classes
+	                           ) throws
+	                           MojoFailureException
+	                           {
+		act(log, "Could not find base class name `%s' for member mappings `%s'", originalName, mappings, null, null, classes);
+	}
+
+	public void actField(
+	                     final Log log,
+	                     final Map<String, Signature> classFieldsCache,
+	                     final String oldName
+	                     ) throws
+	                     MojoFailureException
+	                     {
+		act(log, "Could not find field name `%s' in fields `%s'", oldName, classFieldsCache, null, null, null);
+	}
 }

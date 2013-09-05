@@ -24,6 +24,7 @@ import org.objectweb.asm.commons.Remapper;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Multimap;
+import com.wolvereness.overmapped.asm.ByteClass;
 import com.wolvereness.overmapped.asm.Signature;
 import com.wolvereness.overmapped.asm.Signature.MutableSignature;
 
@@ -36,6 +37,7 @@ class FlagsSubRoutine extends SubRoutine {
 	@Override
 	public void invoke(
 	                   final OverMapped instance,
+	                   final Map<String, ByteClass> classes,
 	                   final Multimap<String, String> depends,
 	                   final Multimap<String, String> rdepends,
 	                   final BiMap<String, String> nameMaps,
