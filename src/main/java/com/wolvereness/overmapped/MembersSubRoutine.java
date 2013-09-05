@@ -406,6 +406,7 @@ class MembersSubRoutine extends SubRoutine {
 			final String unresolvedDescription;
 			if (nullDescription & (nullDescription = (split == -1))) {
 				unresolvedDescription = null;
+				store.oldName = fullToken;
 			} else if (nullDescription || split != fullToken.lastIndexOf(' '))
 				throw new MojoFailureException(String.format(
 					"Malformed mapping %s",
@@ -413,9 +414,9 @@ class MembersSubRoutine extends SubRoutine {
 					));
 			else {
 				unresolvedDescription = fullToken.substring(split + 1, fullToken.length());
+				store.oldName = fullToken.substring(0, split);
 			}
 			store.description = parseDescription(inverseMapper, mutableSignature, unresolvedDescription);
-			store.oldName = fullToken.substring(0, split);
 		} else
 			throw new MojoFailureException(String.format(
 				"Malformed mapping `%s' to `%s' in `%s'",
