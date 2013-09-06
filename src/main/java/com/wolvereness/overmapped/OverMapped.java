@@ -29,7 +29,7 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -423,7 +423,9 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 		final List<Future<Pair<ZipEntry, byte[]>>> fileBuffer = newArrayList();
 
 		final ZipFile zipInput = new ZipFile(input);
-		for (final ZipEntry zipEntry : Collections.list(zipInput.entries())) {
+		final Enumeration<? extends ZipEntry> zipEntries = zipInput.entries();
+		while (zipEntries.hasMoreElements()) {
+			final ZipEntry zipEntry = zipEntries.nextElement();
 			if (ByteClass.isClass(zipEntry.getName())) {
 				classBuffer.add(executor.submit(
 					new Callable<ByteClass>()
