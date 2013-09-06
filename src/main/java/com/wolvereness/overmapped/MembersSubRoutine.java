@@ -534,11 +534,8 @@ class MembersSubRoutine extends SubRoutine {
 	                                    ) throws
 	                                    MojoFailureException
 	                                    {
-		{
-			final Set<String> cache = store.searchCache;
-			if (cache != null && !cache.add(clazz))
-				return false;
-		}
+		if (!store.searchCache.add(clazz))
+			return false;
 
 		signature.update(clazz, oldName, description);
 
