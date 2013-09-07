@@ -210,7 +210,7 @@ public final class ByteClass {
 						@Override
 						public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
 							final MethodVisitor methodVisitor = super.visitMethod(access, name, desc, signature, exceptions);
-							if (!(name.equals("<clinit>") && desc.equals("()V"))) {
+							if (!(name.equals("<clinit>") && desc.equals("()V")) || enums == null) {
 								return methodVisitor;
 							}
 							return new MethodVisitor(ASM4, methodVisitor)
