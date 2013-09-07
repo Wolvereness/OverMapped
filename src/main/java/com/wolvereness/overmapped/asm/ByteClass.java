@@ -275,54 +275,7 @@ public final class ByteClass {
 							return typeName;
 						}
 					}
-				)
-				{
-					@Override
-					public FieldVisitor visitField(
-					                               final int access,
-					                               final String name,
-					                               final String desc,
-					                               final String generics,
-					                               final Object value
-					                               ) {
-						return super.visitField(
-							signature.updateAndGet(
-								ByteClass.this.getToken(),
-								name,
-								desc,
-								flags,
-								access
-								),
-							name,
-							desc,
-							generics,
-							value
-							);
-					}
-
-					@Override
-					public MethodVisitor visitMethod(
-					                                 final int access,
-					                                 final String name,
-					                                 final String desc,
-					                                 final String generics,
-					                                 final String[] exceptions
-					                                 ) {
-						return super.visitMethod(
-							signature.updateAndGet(
-								ByteClass.this.getToken(),
-								name,
-								desc,
-								flags,
-								access
-								),
-							name,
-							desc,
-							generics,
-							exceptions
-							);
-					}
-				},
+				),
 			ClassReader.EXPAND_FRAMES
 			);
 
