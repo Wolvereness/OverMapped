@@ -32,7 +32,8 @@ abstract class SubRoutine {
 	static final Iterable<SubRoutine> SUB_ROUTINES = ImmutableList.of(
 		new ClassesSubRoutine(),
 		new MembersSubRoutine(),
-		new FlagsSubRoutine()
+		new FlagsSubRoutine(),
+		new RegexSubRoutine()
 		);
 
 	final String tag;

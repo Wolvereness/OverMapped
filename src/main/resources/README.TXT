@@ -11,12 +11,12 @@ while the parameter name is used in the pom's plugin-configuration.
   maps - mapping.maps
     This is yaml file containing mapping changes. The top-level structure
     should be a list of relational arrays, or a single relational array. Each
-    relational array can have three processed keys, `members', `classes', and
-    `flags'. Relational arrays are processed in order of appearance. In each
-    relational array, sections are processed in the order of `classes', then
-    `members', then `flags'. Each consecutive entry (as the set of previously
-    described keys) is processed as if every entry is being applied on top of
-    any previous entry.
+    relational array can have four processed keys, `members', `classes',
+    `flags', and `regex'. Relational arrays are processed in order of
+    appearance. In each relational array, sections are processed in the order
+    of `classes', then `members', then `flags', then `regex'. Each
+    consecutive entry (as the set of previously described keys) is processed
+    as if every entry is being applied on top of any previous entry.
 
     MEMBERS (Fields / Methods)
 
@@ -126,6 +126,18 @@ while the parameter name is used in the pom's plugin-configuration.
 
     flags:
       "java/lang/Thread run ()V": 1001
+
+    REGEX (Class names)
+
+    Regex replacements are applied to class names. For every class name, the
+    given name has all matching sequences replaced with the specified
+    replacement string. Backslash ( \ ) and dollar-sign ( $ ) carry unique
+    meaning for escaping and matching groups respectively. Standard java
+    convention is used. An example that renames all classes in java.lang to
+    start with an underscore:
+
+    regex:
+      "^java/lang/([^/]+)$": "java/lang/_$1"
 
     Required
 
