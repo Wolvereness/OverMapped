@@ -16,10 +16,12 @@
  */
 package com.wolvereness.overmapped.asm;
 
-import static org.objectweb.asm.Opcodes.ASM4;
+import static com.google.common.collect.Lists.*;
+import static org.objectweb.asm.Opcodes.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
@@ -34,6 +36,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.commons.RemappingClassAdapter;
 
@@ -182,7 +185,76 @@ public final class ByteClass {
 		final ClassWriter writer = new ClassWriter(0);
 		reader.accept(
 			new RemappingClassAdapter(
-				writer,
+				new ClassVisitor(ASM4, writer)
+					{
+						List<String> enums;
+						String className;
+
+						@Override
+						public void visit(final int version, final int access, final String name, final String signature, final String superName, final String[] interfaces) {
+							if (superName.equals("java/lang/Enum")) {
+								enums = newArrayList();
+								className = name;
+							}
+							super.visit(version, access, name, signature, superName, interfaces);
+						}
+
+						@Override
+						public FieldVisitor visitField(final int access, final String name, final String desc, final String signature, final Object value) {
+							if ((access & 0x4000) != 0 && enums != null) {
+								enums.add(name);
+							}
+							return super.visitField(access, name, desc, signature, value);
+						}
+
+						@Override
+						public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
+							final MethodVisitor methodVisitor = super.visitMethod(access, name, desc, signature, exceptions);
+							if (!(name.equals("<clinit>") && desc.equals("()V"))) {
+								return methodVisitor;
+							}
+							return new MethodVisitor(ASM4, methodVisitor)
+								{
+									private final String classDescriptor = Type.getObjectType(className).getDescriptor();
+									private final Iterator<String> it = enums.iterator();
+									private boolean active;
+									private String lastName;
+
+									@Override
+									public void visitTypeInsn(final int opcode, final String type) {
+										if (!active && it.hasNext()) {
+											// Initiate state machine
+											if (opcode != NEW)
+												throw new AssertionError("Unprepared for TypeInsn: " + opcode + " - " + type + " in " + className);
+											active = true;
+										}
+										super.visitTypeInsn(opcode, type);
+									}
+
+									@Override
+									public void visitLdcInsn(final Object cst) {
+										if (active && lastName == null) {
+											if (!(cst instanceof String))
+												throw new AssertionError("Unprepared for LdcInsn: " + cst + " in " + className);
+											// Switch the first constant in the Enum constructor
+											super.visitLdcInsn(lastName = it.next());
+										} else {
+											super.visitLdcInsn(cst);
+										}
+									}
+
+									@Override
+									public void visitFieldInsn(final int opcode, final String owner, final String name, final String desc) {
+										if (opcode == PUTSTATIC && active && lastName != null && owner.equals(className) && desc.equals(classDescriptor) && name.equals(lastName)) {
+											// Finish the current state machine
+											active = false;
+											lastName = null;
+										}
+										super.visitFieldInsn(opcode, owner, name, desc);
+									}
+								};
+						}
+					},
 				new Remapper()
 					{
 						@Override
