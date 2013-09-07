@@ -167,10 +167,11 @@ public enum Missing {
 	public void actField(
 	                     final Log log,
 	                     final Map<String, Signature> classFieldsCache,
-	                     final String oldName
+	                     final String oldName,
+	                     final String className
 	                     ) throws
 	                     MojoFailureException
 	                     {
-		act(log, "Could not find field name `%s' in fields `%s'", oldName, classFieldsCache, null, null, null);
+		act(log, "Could not find field name `%s' in fields `%s' of `%s'", oldName, classFieldsCache, className, null, null);
 	}
 }

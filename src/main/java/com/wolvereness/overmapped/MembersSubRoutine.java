@@ -39,6 +39,7 @@ class MembersSubRoutine extends SubRoutine {
 		String newName;
 		String oldName;
 		String description;
+		String originalDescription;
 		final Set<String> searchCache;
 		final Set<String> parents;
 		Map<String, Signature> classFieldsCache;
@@ -132,7 +133,7 @@ class MembersSubRoutine extends SubRoutine {
 						entry,
 						false
 						);
-					final String newName = store.newName, oldName = store.oldName, description = store.description;
+					final String newName = store.newName, oldName = store.oldName, description = store.description, originalDescription = store.originalDescription;
 
 					if (!mutableSignature.update("", "", description).isMethod())
 						throw new MojoFailureException(String.format(
@@ -142,7 +143,7 @@ class MembersSubRoutine extends SubRoutine {
 							));
 
 					for (final String className : classNames) {
-						updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps);
+						updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps, originalDescription, nameMaps.get(className));
 
 						if (mutableSignature.isMethod()) {
 							final Set<String> parents = store.parents;
@@ -150,7 +151,7 @@ class MembersSubRoutine extends SubRoutine {
 								parents.addAll(depends.get(className));
 							}
 							for (final String inherited : rdepends.get(className)) {
-								if (!updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, inherited, nameMaps))
+								if (!updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, inherited, nameMaps, originalDescription, nameMaps.get(inherited)))
 									continue;
 
 								if (parents != null) {
@@ -166,29 +167,27 @@ class MembersSubRoutine extends SubRoutine {
 				continue;
 			}
 
-			final String className;
 			if (memberMap.getKey() instanceof Collection<?> && ((Collection<?>) memberMap.getKey()).size() < 1)
 				throw new MojoFailureException(String.format(
 					"Malformed mapping %s -> %s",
 					memberMap.getKey(),
 					maps
 					));
-			else {
-				final String unresolvedClassName = asType(
-					memberMap.getKey() instanceof Collection<?>
-						? ((Collection<?>) memberMap.getKey()).iterator().next()
-						: memberMap.getKey(),
-					"`%4$s' points from a %2$s `%1$s', expected a %5$s, in `%3$s'",
-					false,
-					memberMaps,
-					memberMap,
-					String.class
-					);
-				className = inverseNameMaps.get(unresolvedClassName);
-				if (className == null) {
-					instance.missingAction.actMemberClass(instance.getLog(), unresolvedClassName, memberMap.getKey(), inverseNameMaps);
-					continue;
-				}
+
+			final String unresolvedClassName = asType(
+				memberMap.getKey() instanceof Collection<?>
+					? ((Collection<?>) memberMap.getKey()).iterator().next()
+					: memberMap.getKey(),
+				"`%4$s' points from a %2$s `%1$s', expected a %5$s, in `%3$s'",
+				false,
+				memberMaps,
+				memberMap,
+				String.class
+				);
+			final String className = inverseNameMaps.get(unresolvedClassName);
+			if (className == null) {
+				instance.missingAction.actMemberClass(instance.getLog(), unresolvedClassName, memberMap.getKey(), inverseNameMaps);
+				continue;
 			}
 
 			for (final Map.Entry<?, ?> entry : maps.entrySet()) {
@@ -204,6 +203,7 @@ class MembersSubRoutine extends SubRoutine {
 					mutableSignature,
 					maps,
 					className,
+					unresolvedClassName,
 					entry
 					);
 			}
@@ -222,23 +222,24 @@ class MembersSubRoutine extends SubRoutine {
 	                                               final MutableSignature mutableSignature,
 	                                               final Map<?, ?> maps,
 	                                               final String className,
+	                                               final String originalClassName,
 	                                               final Map.Entry<?, ?> entry
 	                                               ) throws
 	                                               MojoFailureException
 	                                               {
 		if (entry.getValue() instanceof String) {
 			parseMapping(store, inverseMapper, mutableSignature, maps, entry, true);
-			final String newName = store.newName, oldName = store.oldName, description = store.description;
+			final String newName = store.newName, oldName = store.oldName, description = store.description, originalDescription = store.originalDescription;
 			if (description == null) {
 				final Map<String, Signature> classFieldsCache = buildFieldsCache(store, classes.get(className).getLocalSignatures(), signatureMaps);
-				final Signature signature = getClassField(store, classFieldsCache, oldName);
+				final Signature signature = getClassField(store, classFieldsCache, oldName, originalClassName);
 				if (signature == null)
 					return;
 				attemptFieldMap(signatureMaps, signature, mutableSignature, oldName, newName, className);
 				return;
 			}
 
-			updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps);
+			updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps, originalDescription, originalClassName);
 
 			if (mutableSignature.isMethod()) {
 				final Set<String> parents = store.parents;
@@ -246,7 +247,7 @@ class MembersSubRoutine extends SubRoutine {
 					parents.addAll(depends.get(className));
 				}
 				for (final String inherited : rdepends.get(className)) {
-					if (!updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, inherited, nameMaps))
+					if (!updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, inherited, nameMaps, originalDescription, nameMaps.get(inherited)))
 						continue;
 
 					if (parents != null) {
@@ -328,7 +329,7 @@ class MembersSubRoutine extends SubRoutine {
 					oldNames,
 					String.class
 					);
-				final Signature signature = getClassField(store, classFieldsCache, oldName);
+				final Signature signature = getClassField(store, classFieldsCache, oldName, originalClassName);
 				if (signature == null) {
 					continue;
 				}
@@ -347,7 +348,8 @@ class MembersSubRoutine extends SubRoutine {
 	private static Signature getClassField(
 	                                       final Store store,
 	                                       final Map<String, Signature> classFieldsCache,
-	                                       final String oldName
+	                                       final String oldName,
+	                                       final String originalClassName
 	                                       ) throws
 	                                       MojoFailureException
 	                                       {
@@ -359,7 +361,7 @@ class MembersSubRoutine extends SubRoutine {
 				"Ambiguous field name %s",
 				oldName
 				));
-		store.instance.missingAction.actField(store.instance.getLog(), classFieldsCache, oldName);
+		store.instance.missingAction.actField(store.instance.getLog(), classFieldsCache, oldName, originalClassName);
 		return null;
 	}
 
@@ -391,7 +393,7 @@ class MembersSubRoutine extends SubRoutine {
 				mapKey,
 				String.class
 				);
-			final String unresolvedDescription = asType(
+			final String unresolvedDescription = store.originalDescription = asType(
 				mapKey.getValue(),
 				"`%4$s' points to a %2$s `%1$s', expected a %5$s, in `%3$s'",
 				nullDescription,
@@ -413,7 +415,7 @@ class MembersSubRoutine extends SubRoutine {
 					fullToken
 					));
 			else {
-				unresolvedDescription = fullToken.substring(split + 1, fullToken.length());
+				unresolvedDescription = store.originalDescription = fullToken.substring(split + 1, fullToken.length());
 				store.oldName = fullToken.substring(0, split);
 			}
 			store.description = parseDescription(inverseMapper, mutableSignature, unresolvedDescription);
@@ -530,7 +532,9 @@ class MembersSubRoutine extends SubRoutine {
 	                                    final String newName,
 	                                    final String description,
 	                                    final String clazz,
-	                                    final Map<String, String> classes
+	                                    final Map<String, String> classes,
+	                                    final String originalDescription,
+	                                    final String originalClass
 	                                    ) throws
 	                                    MojoFailureException
 	                                    {
@@ -555,7 +559,7 @@ class MembersSubRoutine extends SubRoutine {
 				throw mojoEx;
 			}
 		} else {
-			store.instance.missingAction.actMember(store.instance.getLog(), clazz, oldName, newName, description, inverseSignatureMaps);
+			store.instance.missingAction.actMember(store.instance.getLog(), originalClass, oldName, newName, originalDescription, inverseSignatureMaps);
 		}
 		return true;
 	}
