@@ -37,12 +37,11 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
-import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.commons.RemappingClassAdapter;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableList.Builder;
 import com.google.common.io.ByteStreams;
-import com.wolvereness.overmapped.asm.Signature.MutableSignature;
 
 public final class ByteClass {
 	static final String FILE_POSTFIX = ".class";
@@ -72,56 +71,7 @@ public final class ByteClass {
 			}
 		}
 		reader.accept(
-			new ClassVisitor(ASM4)
-				{
-
-					@Override
-					public FieldVisitor visitField(
-					                               final int access,
-					                               final String name,
-					                               final String desc,
-					                               final String signature,
-					                               final Object value
-					                               ) {
-						localSignatures.add(new Signature(ByteClass.this.getToken(), name, desc));
-						return super.visitField(access, name, desc, signature, value);
-					}
-
-					@Override
-					public MethodVisitor visitMethod(
-					                                 final int access,
-					                                 final String name,
-					                                 final String desc,
-					                                 final String signature,
-					                                 final String[] exceptions
-					                                 ) {
-						localSignatures.add(new Signature(ByteClass.this.getToken(), name, desc));
-						return super.visitMethod(access, name, desc, signature, exceptions);
-					}
-
-					@Override
-					public void visit(
-					                  final int version,
-					                  final int access,
-					                  final String name,
-					                  final String signature,
-					                  final String superName,
-					                  final String[] interfacesArray
-					                  ) {
-						super.visit(version, access, name, signature, superName, interfacesArray);
-
-						parent.setValue(superName);
-
-						if (!name.equals(ByteClass.this.getToken()))
-							throw new IllegalArgumentException(name + " is not " + ByteClass.this.getToken());
-
-						for (final String interfaceName : interfacesArray) {
-							if (!(interfaceName.startsWith("java.") || interfaceName.startsWith("javax."))) {
-								interfaces.add(interfaceName);
-							}
-						}
-					}
-				},
+			new ClassParser(token, interfaces, parent, localSignatures),
 			ClassReader.SKIP_CODE
 			);
 
@@ -181,100 +131,11 @@ public final class ByteClass {
 	                                   ) throws
 	                                   Exception
 	                                   {
-		final MutableSignature signature = new Signature.MutableSignature("", "", "");
 		final ClassWriter writer = new ClassWriter(0);
 		reader.accept(
 			new RemappingClassAdapter(
-				new ClassVisitor(ASM4, writer)
-					{
-						List<String> enums;
-						String className;
-
-						@Override
-						public void visit(final int version, final int access, final String name, final String signature, final String superName, final String[] interfaces) {
-							if (superName.equals("java/lang/Enum")) {
-								enums = newArrayList();
-								className = name;
-							}
-							super.visit(version, access, name, signature, superName, interfaces);
-						}
-
-						@Override
-						public FieldVisitor visitField(final int access, final String name, final String desc, final String signature, final Object value) {
-							if ((access & 0x4000) != 0 && enums != null) {
-								enums.add(name);
-							}
-							return super.visitField(access, name, desc, signature, value);
-						}
-
-						@Override
-						public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
-							final MethodVisitor methodVisitor = super.visitMethod(access, name, desc, signature, exceptions);
-							if (!(name.equals("<clinit>") && desc.equals("()V")) || enums == null) {
-								return methodVisitor;
-							}
-							return new MethodVisitor(ASM4, methodVisitor)
-								{
-									private final String classDescriptor = Type.getObjectType(className).getDescriptor();
-									private final Iterator<String> it = enums.iterator();
-									private boolean active;
-									private String lastName;
-
-									@Override
-									public void visitTypeInsn(final int opcode, final String type) {
-										if (!active && it.hasNext()) {
-											// Initiate state machine
-											if (opcode != NEW)
-												throw new AssertionError("Unprepared for TypeInsn: " + opcode + " - " + type + " in " + className);
-											active = true;
-										}
-										super.visitTypeInsn(opcode, type);
-									}
-
-									@Override
-									public void visitLdcInsn(final Object cst) {
-										if (active && lastName == null) {
-											if (!(cst instanceof String))
-												throw new AssertionError("Unprepared for LdcInsn: " + cst + " in " + className);
-											// Switch the first constant in the Enum constructor
-											super.visitLdcInsn(lastName = it.next());
-										} else {
-											super.visitLdcInsn(cst);
-										}
-									}
-
-									@Override
-									public void visitFieldInsn(final int opcode, final String owner, final String name, final String desc) {
-										if (opcode == PUTSTATIC && active && lastName != null && owner.equals(className) && desc.equals(classDescriptor) && name.equals(lastName)) {
-											// Finish the current state machine
-											active = false;
-											lastName = null;
-										}
-										super.visitFieldInsn(opcode, owner, name, desc);
-									}
-								};
-						}
-					},
-				new Remapper()
-					{
-						@Override
-						public String mapMethodName(final String owner, final String name, final String desc) {
-							return signature.update(owner, name, desc, signatures).getElementName();
-						}
-
-						@Override
-						public String mapFieldName(final String owner, final String name, final String desc) {
-							return signature.update(owner, name, desc, signatures).getElementName();
-						}
-
-						@Override
-						public String map(final String typeName) {
-							final String name = classMaps.get(typeName);
-							if (name != null)
-								return name;
-							return typeName;
-						}
-					}
+				new EnumCorrection(writer),
+				new SignatureRemapper(classMaps, signatures)
 				),
 			ClassReader.EXPAND_FRAMES
 			);
@@ -292,5 +153,162 @@ public final class ByteClass {
 
 	public static boolean isClass(final String name) {
 		return name.endsWith(FILE_POSTFIX);
+	}
+}
+
+final class ClassParser extends ClassVisitor {
+	private final String className;
+	private final Builder<String> interfaces;
+	private final MutableObject<String> parent;
+	private final Builder<Signature> localSignatures;
+
+	ClassParser(
+	            final String className,
+	            final Builder<String> interfaces,
+	            final MutableObject<String> parent,
+	            final Builder<Signature> localSignatures
+	            ) {
+		super(ASM4);
+		this.className = className;
+		this.interfaces = interfaces;
+		this.parent = parent;
+		this.localSignatures = localSignatures;
+	}
+
+	@Override
+	public FieldVisitor visitField(
+	                               final int access,
+	                               final String name,
+	                               final String desc,
+	                               final String signature,
+	                               final Object value
+	                               ) {
+		localSignatures.add(new Signature(className, name, desc));
+		return super.visitField(access, name, desc, signature, value);
+	}
+
+	@Override
+	public MethodVisitor visitMethod(
+	                                 final int access,
+	                                 final String name,
+	                                 final String desc,
+	                                 final String signature,
+	                                 final String[] exceptions
+	                                 ) {
+		localSignatures.add(new Signature(className, name, desc));
+		return super.visitMethod(access, name, desc, signature, exceptions);
+	}
+
+	@Override
+	public void visit(
+	                  final int version,
+	                  final int access,
+	                  final String name,
+	                  final String signature,
+	                  final String superName,
+	                  final String[] interfacesArray
+	                  ) {
+		super.visit(version, access, name, signature, superName, interfacesArray);
+
+		parent.setValue(superName);
+
+		if (!name.equals(className))
+			throw new IllegalArgumentException(name + " is not " + className);
+
+		for (final String interfaceName : interfacesArray) {
+			if (!(interfaceName.startsWith("java.") || interfaceName.startsWith("javax."))) {
+				interfaces.add(interfaceName);
+			}
+		}
+	}
+}
+
+final class EnumCorrection extends ClassVisitor {
+	private List<String> enums;
+	private String className;
+
+	EnumCorrection(final ClassVisitor cv) {
+		super(ASM4, cv);
+	}
+
+	@Override
+	public void visit(
+	                  final int version,
+	                  final int access,
+	                  final String name,
+	                  final String signature,
+	                  final String superName,
+	                  final String[] interfaces
+	                  ) {
+		if (superName.equals("java/lang/Enum")) {
+			enums = newArrayList();
+			className = name;
+		}
+		super.visit(version, access, name, signature, superName, interfaces);
+	}
+
+	@Override
+	public FieldVisitor visitField(final int access, final String name, final String desc, final String signature, final Object value) {
+		if ((access & 0x4000) != 0 && enums != null) {
+			enums.add(name);
+		}
+		return super.visitField(access, name, desc, signature, value);
+	}
+
+	@Override
+	public MethodVisitor visitMethod(final int access, final String name, final String desc, final String signature, final String[] exceptions) {
+		final MethodVisitor methodVisitor = super.visitMethod(access, name, desc, signature, exceptions);
+		if (!(name.equals("<clinit>") && desc.equals("()V")) || enums == null) {
+			return methodVisitor;
+		}
+		return new EnumMethodCorrection(methodVisitor, enums, className);
+	}
+}
+
+final class EnumMethodCorrection extends MethodVisitor {
+	private final Iterator<String> it;
+	private boolean active;
+	private String lastName;
+	private final String className;
+	private final String classDescriptor;
+
+	EnumMethodCorrection(final MethodVisitor mv, final List<String> enums, final String className) {
+		super(ASM4, mv);
+		this.it = enums.iterator();
+		this.className = className;
+		this.classDescriptor = Type.getObjectType(className).getDescriptor();
+	}
+
+	@Override
+	public void visitTypeInsn(final int opcode, final String type) {
+		if (!active && it.hasNext()) {
+			// Initiate state machine
+			if (opcode != NEW)
+				throw new AssertionError("Unprepared for TypeInsn: " + opcode + " - " + type + " in " + className);
+			active = true;
+		}
+		super.visitTypeInsn(opcode, type);
+	}
+
+	@Override
+	public void visitLdcInsn(final Object cst) {
+		if (active && lastName == null) {
+			if (!(cst instanceof String))
+				throw new AssertionError("Unprepared for LdcInsn: " + cst + " in " + className);
+			// Switch the first constant in the Enum constructor
+			super.visitLdcInsn(lastName = it.next());
+		} else {
+			super.visitLdcInsn(cst);
+		}
+	}
+
+	@Override
+	public void visitFieldInsn(final int opcode, final String owner, final String name, final String desc) {
+		if (opcode == PUTSTATIC && active && lastName != null && owner.equals(className) && desc.equals(classDescriptor) && name.equals(lastName)) {
+			// Finish the current state machine
+			active = false;
+			lastName = null;
+		}
+		super.visitFieldInsn(opcode, owner, name, desc);
 	}
 }
