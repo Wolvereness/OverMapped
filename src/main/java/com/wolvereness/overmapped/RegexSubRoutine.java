@@ -102,7 +102,7 @@ class RegexSubRoutine extends SubRoutine {
 					final String oldName = classMap.getValue();
 					final String newName = regex.matcher(oldName).replaceAll(replacement);
 					if (!oldName.equals(newName)) {
-						regexNameMaps.put(oldName, newName);
+						regexNameMaps.put(classMap.getKey(), newName);
 						it.remove(); // Insert them back later; this is to prevent class name-switching state issues
 					}
 				}
