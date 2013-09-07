@@ -16,6 +16,8 @@
  */
 package com.wolvereness.overmapped;
 
+import static com.google.common.collect.Lists.*;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -160,7 +162,7 @@ class MembersSubRoutine extends SubRoutine {
 							}
 						}
 					}
-					performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, classNames, newName, oldName, description);
+					performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, classNames, newName, oldName, originalDescription);
 					store.searchCache.clear();
 				}
 
@@ -254,7 +256,7 @@ class MembersSubRoutine extends SubRoutine {
 						parents.addAll(depends.get(inherited));
 					}
 				}
-				performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, className, newName, oldName, description);
+				performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, className, newName, oldName, originalDescription);
 			}
 			store.searchCache.clear();
 		} else if (entry.getValue() instanceof Iterable) {
@@ -433,7 +435,7 @@ class MembersSubRoutine extends SubRoutine {
 	                                        final BiMap<String, String> nameMaps,
 	                                        final BiMap<Signature, Signature> inverseSignatureMaps,
 	                                        final MutableSignature mutableSignature,
-	                                        final Object className_s,
+	                                        Object className_s,
 	                                        final String newName,
 	                                        final String oldName,
 	                                        final String description
@@ -441,6 +443,18 @@ class MembersSubRoutine extends SubRoutine {
 		final Set<String> parents = store.parents;
 		if (parents != null) {
 			parents.removeAll(store.searchCache);
+			if (parents.isEmpty())
+				return;
+
+			if (className_s instanceof String) {
+				className_s = nameMaps.get(className_s);
+			} else {
+				final Collection<String> originalClassNames = newArrayList();
+				for (final Object className : (Iterable<?>) className_s) {
+					originalClassNames.add(nameMaps.get(className));
+				}
+				className_s = originalClassNames;
+			}
 			for (final String parent : parents) {
 				if (inverseSignatureMaps.containsKey(mutableSignature.update(parent, oldName, description))) {
 					store.instance.getLog().info(String.format(
