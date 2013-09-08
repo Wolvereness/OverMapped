@@ -135,7 +135,7 @@ public final class ByteClass {
 		reader.accept(
 			new RemappingClassAdapter(
 				new EnumCorrection(writer),
-				new SignatureRemapper(classMaps, signatures)
+				new SignatureRemapper(classMaps, signatures, classes)
 				),
 			ClassReader.EXPAND_FRAMES
 			);

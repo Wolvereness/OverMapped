@@ -30,10 +30,11 @@ public class Signature {
 		                               final String signature,
 		                               final Map<Signature, Signature> signatures
 		                               ) {
-			this.clazz = clazz;
-			this.name = name;
-			this.descriptor = signature;
-			this.hash = hash(clazz, name, signature);
+			this.hash = hash(
+				this.clazz = clazz,
+				this.name = name,
+				this.descriptor = signature
+				);
 			final Signature value = signatures.get(this);
 			if (value != null) {
 				this.clazz = value.clazz;
@@ -41,6 +42,36 @@ public class Signature {
 				this.descriptor = value.descriptor;
 				this.hash = value.hash;
 			}
+			return this;
+		}
+
+		public MutableSignature update(
+		                               final String clazz,
+		                               final String name,
+		                               final String signature,
+		                               final Map<Signature, Signature> signatures,
+		                               final Map<String, ByteClass> classes
+		                               ) {
+			this.hash = hash(
+				this.clazz = clazz,
+				this.name = name,
+				this.descriptor = signature
+				);
+			Signature value;
+			while ((value = signatures.get(this)) == null) {
+				final ByteClass byteClass = classes.get(this.clazz);
+				if (byteClass == null) {
+					this.clazz = clazz;
+					this.hash = hash(clazz, name, signature);
+					return this;
+				} else {
+					this.hash = hash(this.clazz = byteClass.getParent(), name, signature);
+				}
+			}
+			this.clazz = value.clazz;
+			this.name = value.name;
+			this.descriptor = value.descriptor;
+			this.hash = value.hash;
 			return this;
 		}
 

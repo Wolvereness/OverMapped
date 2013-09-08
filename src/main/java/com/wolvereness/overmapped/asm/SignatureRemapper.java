@@ -9,14 +9,17 @@ import com.wolvereness.overmapped.asm.Signature.MutableSignature;
 final class SignatureRemapper extends Remapper {
 	private final MutableSignature signature = new Signature.MutableSignature("", "", "");
 	private final Map<Signature, Signature> signatures;
+	private final Map<String, ByteClass> classes;
 	private final Map<String, String> classMaps;
 
 	SignatureRemapper(
 	                  final Map<String, String> classMaps,
-	                  final Map<Signature, Signature> signatures
+	                  final Map<Signature, Signature> signatures,
+	                  final Map<String, ByteClass> classes
 	                  ) {
 		this.classMaps = classMaps;
 		this.signatures = signatures;
+		this.classes = classes;
 	}
 
 	@Override
@@ -26,7 +29,7 @@ final class SignatureRemapper extends Remapper {
 
 	@Override
 	public String mapFieldName(final String owner, final String name, final String desc) {
-		return signature.update(owner, name, desc, signatures).getElementName();
+		return signature.update(owner, name, desc, signatures, classes).getElementName();
 	}
 
 	@Override
