@@ -162,7 +162,7 @@ class MembersSubRoutine extends SubRoutine {
 							}
 						}
 					}
-					performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, classNames, newName, oldName, originalDescription);
+					performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, classNames, newName, oldName, description, originalDescription);
 					store.searchCache.clear();
 				}
 
@@ -256,7 +256,7 @@ class MembersSubRoutine extends SubRoutine {
 						parents.addAll(depends.get(inherited));
 					}
 				}
-				performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, className, newName, oldName, originalDescription);
+				performParentChecks(store, nameMaps, inverseSignatureMaps, mutableSignature, className, newName, oldName, description, originalDescription);
 			}
 			store.searchCache.clear();
 		} else if (entry.getValue() instanceof Iterable) {
@@ -438,7 +438,8 @@ class MembersSubRoutine extends SubRoutine {
 	                                        Object className_s,
 	                                        final String newName,
 	                                        final String oldName,
-	                                        final String description
+	                                        final String description,
+	                                        final String originalDescription
 	                                        ) {
 		final Set<String> parents = store.parents;
 		if (parents != null) {
@@ -459,7 +460,7 @@ class MembersSubRoutine extends SubRoutine {
 				if (inverseSignatureMaps.containsKey(mutableSignature.update(parent, oldName, description))) {
 					store.instance.getLog().info(String.format(
 						"Expected parent method mapping for `%s'->`%s' from mappings in %s",
-						mutableSignature.update(nameMaps.get(parent), oldName, description),
+						mutableSignature.update(nameMaps.get(parent), oldName, originalDescription),
 						mutableSignature.forElementName(newName),
 						className_s
 						));
