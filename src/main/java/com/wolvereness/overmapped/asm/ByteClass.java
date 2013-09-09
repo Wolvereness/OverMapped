@@ -216,7 +216,7 @@ final class ClassParser extends ClassVisitor {
 			throw new IllegalArgumentException(name + " is not " + className);
 
 		for (final String interfaceName : interfacesArray) {
-			if (!(interfaceName.startsWith("java.") || interfaceName.startsWith("javax."))) {
+			if (!(interfaceName.startsWith("java/") || interfaceName.startsWith("javax/"))) {
 				interfaces.add(interfaceName);
 			}
 		}
