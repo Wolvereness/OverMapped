@@ -184,3 +184,15 @@ while the parameter name is used in the pom's plugin-configuration.
     will print a message indicating the method that is no longer overridden.
 
     Default - false
+
+  correctEnums - mapping.correctEnums
+    This value indicates that when the field-name of an Enum is changed, it
+    should also change the internal "String" used to identify the Enum. No
+    specific configuration is used, as all internal names will mirror that of
+    the field used to store the enum.
+
+    This value changes the behavior of the static method in Enum,
+    Enum.valueOf(Class<T> enumType, String name), and in turn affects
+    serialization of the enum values (which is performed by internal-names).
+
+    Default - true

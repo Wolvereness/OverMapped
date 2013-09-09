@@ -92,6 +92,9 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	@Parameter(defaultValue="false", property="mapping.findParents")
 	private boolean findParents;
 
+	@Parameter(defaultValue="true", property="mapping.correctEnums")
+	private boolean correctEnums;
+
 	private volatile Pair<Thread, Throwable> uncaught;
 
 	@Override
@@ -271,7 +274,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 	                         {
 		final Collection<Future<Pair<ZipEntry, byte[]>>> classWrites = newArrayList();
 		for (final ByteClass clazz : byteClasses.values()) {
-			classWrites.add(executor.submit(clazz.callable(signatureMaps, nameMaps, byteClasses, flags)));
+			classWrites.add(executor.submit(clazz.callable(signatureMaps, nameMaps, byteClasses, flags, correctEnums)));
 		}
 
 		FileOutputStream fileOut = null;
@@ -302,7 +305,6 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 			}
 		}
 	}
-
 
 	private void validateInput() throws MojoExecutionException, MojoFailureException {
 		if (cores <=0)

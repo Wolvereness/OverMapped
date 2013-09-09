@@ -112,13 +112,14 @@ public final class ByteClass {
 	                                                 final Map<Signature, Signature> signatures,
 	                                                 final Map<String, String> classMaps,
 	                                                 final Map<String, ByteClass> classes,
-	                                                 final Map<Signature, Integer> flags
+	                                                 final Map<Signature, Integer> flags,
+	                                                 final boolean correctEnums
 	                                                 ) {
 		return new Callable<Pair<ZipEntry, byte[]>>()
 			{
 				@Override
 				public Pair<ZipEntry, byte[]> call() throws Exception {
-					return ByteClass.this.call(signatures, classMaps, classes, flags);
+					return ByteClass.this.call(signatures, classMaps, classes, flags, correctEnums);
 				}
 			};
 	}
@@ -127,14 +128,15 @@ public final class ByteClass {
 	                                   final Map<Signature, Signature> signatures,
 	                                   final Map<String, String> classMaps,
 	                                   final Map<String, ByteClass> classes,
-	                                   final Map<Signature, Integer> flags
+	                                   final Map<Signature, Integer> flags,
+	                                   final boolean correctEnums
 	                                   ) throws
 	                                   Exception
 	                                   {
 		final ClassWriter writer = new ClassWriter(0);
 		reader.accept(
 			new RemappingClassAdapter(
-				new EnumCorrection(writer),
+				correctEnums ? new EnumCorrection(writer) : writer,
 				new SignatureRemapper(classMaps, signatures, classes)
 				),
 			ClassReader.EXPAND_FRAMES
