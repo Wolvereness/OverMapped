@@ -135,59 +135,14 @@ public final class ByteClass {
 	                                   {
 		final ClassWriter writer = new ClassWriter(0);
 		reader.accept(
-			new RemappingClassAdapter(
-				correctEnums ? new EnumCorrection(writer) : writer,
-				new SignatureRemapper(classMaps, signatures, classes)
-				) {
-					private final Signature.MutableSignature signature = new Signature.MutableSignature("", "", "");
-
-					@Override
-					public FieldVisitor visitField(
-					                               final int access,
-					                               final String name,
-					                               final String desc,
-					                               final String generics,
-					                               final Object value
-					                               ) {
-						return super.visitField(
-							signature.updateAndGet(
-								ByteClass.this.getToken(),
-								name,
-								desc,
-								flags,
-								access
-								),
-							name,
-							desc,
-							generics,
-							value
-							);
-					}
-
-					@Override
-					public MethodVisitor visitMethod(
-					                                 final int access,
-					                                 final String name,
-					                                 final String desc,
-					                                 final String generics,
-					                                 final String[] exceptions
-					                                 ) {
-						return super.visitMethod(
-							signature.updateAndGet(
-								ByteClass.this.getToken(),
-								name,
-								desc,
-								flags,
-								access
-								),
-							name,
-							desc,
-							generics,
-							exceptions
-							);
-					}
-				},
-			ClassReader.EXPAND_FRAMES
+			new FlagSetter(
+				new RemappingClassAdapter(
+					correctEnums ? new EnumCorrection(writer) : writer,
+					new SignatureRemapper(classMaps, signatures, classes)
+					),
+				flags
+				),
+				ClassReader.EXPAND_FRAMES
 			);
 
 		return new ImmutablePair<ZipEntry, byte[]>(
@@ -207,7 +162,7 @@ public final class ByteClass {
 }
 
 final class ClassParser extends ClassVisitor {
-	private final String className;
+	private String className;
 	private final Builder<String> interfaces;
 	private final MutableObject<String> parent;
 	private final Builder<Signature> localSignatures;
@@ -270,6 +225,78 @@ final class ClassParser extends ClassVisitor {
 				interfaces.add(interfaceName);
 			}
 		}
+	}
+}
+
+final class FlagSetter extends ClassVisitor {
+	private final Signature.MutableSignature signature = new Signature.MutableSignature("", "", "");
+	private String className;
+	private final Map<Signature, Integer> flags;
+
+	FlagSetter(
+	           final ClassVisitor cv,
+	           final Map<Signature, Integer> flags
+	           ) {
+		super(ASM4, cv);
+		this.flags = flags;
+	}
+
+	@Override
+	public void visit(
+	                  final int version,
+	                  final int access,
+	                  final String name,
+	                  final String signature,
+	                  final String superName,
+	                  final String[] interfaces
+	                  ) {
+		super.visit(version, access, className = name, signature, superName, interfaces);
+	}
+
+	@Override
+	public FieldVisitor visitField(
+	                               final int access,
+	                               final String name,
+	                               final String desc,
+	                               final String generics,
+	                               final Object value
+	                               ) {
+		return super.visitField(
+			signature.updateAndGet(
+				className,
+				name,
+				desc,
+				flags,
+				access
+				),
+			name,
+			desc,
+			generics,
+			value
+			);
+	}
+
+	@Override
+	public MethodVisitor visitMethod(
+	                                 final int access,
+	                                 final String name,
+	                                 final String desc,
+	                                 final String generics,
+	                                 final String[] exceptions
+	                                 ) {
+		return super.visitMethod(
+			signature.updateAndGet(
+				className,
+				name,
+				desc,
+				flags,
+				access
+				),
+			name,
+			desc,
+			generics,
+			exceptions
+			);
 	}
 }
 
