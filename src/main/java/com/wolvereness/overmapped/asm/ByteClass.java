@@ -142,7 +142,7 @@ public final class ByteClass {
 					),
 				flags
 				),
-				ClassReader.EXPAND_FRAMES
+			ClassReader.EXPAND_FRAMES
 			);
 
 		return new ImmutablePair<ZipEntry, byte[]>(
