@@ -358,7 +358,7 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 			final Iterable<String> reverseDependencies = rdepends.containsKey(name) ? rdepends.get(name) : ImmutableSet.<String>of();
 			for (final Signature signature : clazz.getLocalSignatures()) {
 				signatureMaps.put(signature, signature);
-				if (signature.isMethod()) {
+				if (signature.isMethod() && !signature.getElementName().startsWith("<")) {
 					for (final String rdepend : reverseDependencies) {
 						final Signature newSignature = signature.forClassName(rdepend);
 						signatureMaps.put(newSignature, newSignature);
