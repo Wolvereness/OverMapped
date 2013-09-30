@@ -147,7 +147,7 @@ class MembersSubRoutine extends SubRoutine {
 					for (final String className : classNames) {
 						updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps, originalDescription, nameMaps.get(className));
 
-						if (mutableSignature.isMethod()) {
+						if (mutableSignature.isMethod() && !mutableSignature.isConstructor()) {
 							final Set<String> parents = store.parents;
 							if (parents != null) {
 								parents.addAll(depends.get(className));
@@ -243,7 +243,7 @@ class MembersSubRoutine extends SubRoutine {
 
 			updateMember(store, signatureMaps, inverseSignatureMaps, mutableSignature, oldName, newName, description, className, nameMaps, originalDescription, originalClassName);
 
-			if (mutableSignature.isMethod()) {
+			if (mutableSignature.isMethod() && !mutableSignature.isConstructor()) {
 				final Set<String> parents = store.parents;
 				if (parents != null) {
 					parents.addAll(depends.get(className));

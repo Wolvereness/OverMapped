@@ -179,6 +179,10 @@ public class Signature {
 		return descriptor.charAt(0) == '(';
 	}
 
+	public boolean isConstructor() {
+		return name.startsWith("<");
+	}
+
 	@Override
 	public String toString() {
 		return toMappable();
