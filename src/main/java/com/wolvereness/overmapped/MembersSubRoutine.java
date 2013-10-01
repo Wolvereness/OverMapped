@@ -317,7 +317,7 @@ class MembersSubRoutine extends SubRoutine {
 						));
 				final String newName = asType(
 					name,
-					"`%4$s' contains a %2$2 `%1$s', expected a %5$s, in `%3$s'",
+					"`%4$s' contains a %2$s `%1$s', expected a %5$s, in `%3$s'",
 					false,
 					entry,
 					names,
@@ -325,7 +325,7 @@ class MembersSubRoutine extends SubRoutine {
 					);
 				final String oldName = asType(
 					oldNames.get(i++),
-					"`%4$s' contains a %2$2 `%1$s', expected a %5$s, in `%3$s'",
+					"`%4$s' contains a %2$s `%1$s', expected a %5$s, in `%3$s'",
 					false,
 					entry,
 					oldNames,
