@@ -337,6 +337,7 @@ class MembersSubRoutine extends SubRoutine {
 				}
 
 				attemptFieldMap(signatureMaps, signature, mutableSignature, oldName, newName, className);
+				updateFieldCacheEntry(classFieldsCache, signature, newName);
 			}
 		} else
 			throw new MojoFailureException(String.format(
@@ -347,6 +348,18 @@ class MembersSubRoutine extends SubRoutine {
 				));
 	}
 
+	private static void updateFieldCacheEntry(
+	                                          final Map<String, Signature> cache,
+	                                          final Signature signature,
+	                                          final String newName
+	                                          ) {
+		final int size = cache.size();
+		if (cache.put(newName, signature) != null || size == cache.size()) {
+			// (put() != null) is redundant to (size==cache.size()), but who cares?
+			cache.put(newName, null);
+		}
+	}
+
 	private static Signature getClassField(
 	                                       final Store store,
 	                                       final Map<String, Signature> classFieldsCache,
@@ -355,10 +368,11 @@ class MembersSubRoutine extends SubRoutine {
 	                                       ) throws
 	                                       MojoFailureException
 	                                       {
-		final Signature signature = classFieldsCache.get(oldName);
+		final int size = classFieldsCache.size();
+		final Signature signature = classFieldsCache.remove(oldName);
 		if (signature != null)
 			return signature;
-		if (classFieldsCache.containsKey(oldName))
+		if (size != classFieldsCache.size())
 			throw new MojoFailureException(String.format(
 				"Ambiguous field name %s",
 				oldName
