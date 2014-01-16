@@ -99,21 +99,6 @@ public class OverMapped extends AbstractMojo implements UncaughtExceptionHandler
 
 	@Override
 	public void execute() throws MojoExecutionException, MojoFailureException {
-		final InputStream license = OverMapped.class.getResourceAsStream("/COPYING.HEADER.TXT");
-		if (license != null) {
-			try {
-				getLog().info(new String(ByteStreams.toByteArray(license), "UTF8"));
-			} catch (final IOException ex) {
-				getLog().warn("Missing LICENSE data", ex);
-			} finally {
-				try {
-					license.close();
-				} catch (final IOException e) {
-				}
-			}
-		} else {
-			getLog().warn("Missing LICENSE data");
-		}
 		try {
 			process();
 		} catch (final MojoExecutionException ex) {
